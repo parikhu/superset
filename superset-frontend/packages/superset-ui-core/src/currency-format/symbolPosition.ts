@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { logging } from '@apache-superset/core/utils';
+import { FeatureFlag, isFeatureEnabled } from '../utils';
 import { getCurrencyLocale } from './currencyLocale';
 
 export type SymbolPosition = 'prefix' | 'suffix';
@@ -35,6 +37,13 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
  */
 const positionCache = new Map<string, SymbolPosition>();
 
+let legacySuffixWarningEmitted = false;
+
+/** Reset the one-time deprecation warning guard (test-only). */
+export function resetLegacySuffixWarning(): void {
+  legacySuffixWarningEmitted = false;
+}
+
 /**
  * Resolve where the currency symbol should be placed relative to the value.
  *
@@ -51,6 +60,23 @@ export function resolveSymbolPosition(
 ): SymbolPosition {
   if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
     return symbolPosition;
+  }
+
+  // TODO: DEPRECATION — remove the LEGACY_CURRENCY_SUFFIX_DEFAULT feature flag
+  // and this branch in 7.0.0. Migration: set an explicit symbolPosition on
+  // every metric currency control that relied on the old always-suffix default.
+  if (isFeatureEnabled(FeatureFlag.LegacyCurrencySuffixDefault)) {
+    if (!legacySuffixWarningEmitted) {
+      legacySuffixWarningEmitted = true;
+      logging.warn(
+        'LEGACY_CURRENCY_SUFFIX_DEFAULT is enabled. ' +
+          'Unset currency symbol positions default to "suffix" instead of ' +
+          'following the locale. This flag is deprecated and will be removed ' +
+          'in Superset 7.0.0. Set an explicit symbolPosition on each ' +
+          "metric's currency control to migrate.",
+      );
+    }
+    return 'suffix';
   }
 
   if (currencyCode) {

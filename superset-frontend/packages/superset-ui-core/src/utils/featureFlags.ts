@@ -58,6 +58,8 @@ export enum FeatureFlag {
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
   GranularExportControls = 'GRANULAR_EXPORT_CONTROLS',
+  /** @deprecated Remove in 7.0.0 — restores the pre-6.x always-suffix default for unset currency symbol position. */
+  LegacyCurrencySuffixDefault = 'LEGACY_CURRENCY_SUFFIX_DEFAULT',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',

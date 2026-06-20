@@ -20,7 +20,15 @@
 import {
   resolveSymbolPosition,
   formatWithSymbolPosition,
+  resetLegacySuffixWarning,
+  FeatureFlag,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
+
+afterEach(() => {
+  window.featureFlags = {};
+  resetLegacySuffixWarning();
+});
 
 test('resolveSymbolPosition honors an explicit position regardless of locale', () => {
   expect(resolveSymbolPosition('EUR', 'prefix', 'fr-FR')).toEqual('prefix');
@@ -56,4 +64,46 @@ test('resolveSymbolPosition falls back to prefix for unknown currencies', () => 
 test('formatWithSymbolPosition places the symbol according to the position', () => {
   expect(formatWithSymbolPosition('$', '1,000', 'prefix')).toEqual('$ 1,000');
   expect(formatWithSymbolPosition('€', '1,000', 'suffix')).toEqual('1,000 €');
+});
+
+test('resolveSymbolPosition returns suffix for unset position when LEGACY_CURRENCY_SUFFIX_DEFAULT is enabled', () => {
+  window.featureFlags = {
+    [FeatureFlag.LegacyCurrencySuffixDefault]: true,
+  };
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('suffix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+  expect(resolveSymbolPosition('GBP', undefined, 'en-US')).toEqual('suffix');
+  expect(resolveSymbolPosition(undefined, undefined, 'en-US')).toEqual(
+    'suffix',
+  );
+});
+
+test('resolveSymbolPosition still honors explicit position when LEGACY_CURRENCY_SUFFIX_DEFAULT is enabled', () => {
+  window.featureFlags = {
+    [FeatureFlag.LegacyCurrencySuffixDefault]: true,
+  };
+  expect(resolveSymbolPosition('EUR', 'prefix', 'fr-FR')).toEqual('prefix');
+  expect(resolveSymbolPosition('USD', 'suffix', 'en-US')).toEqual('suffix');
+});
+
+test('resolveSymbolPosition uses locale-aware default when LEGACY_CURRENCY_SUFFIX_DEFAULT is disabled', () => {
+  window.featureFlags = {
+    [FeatureFlag.LegacyCurrencySuffixDefault]: false,
+  };
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('prefix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+});
+
+test('resolveSymbolPosition emits a deprecation warning once when legacy flag is enabled', () => {
+  const warnSpy = jest.spyOn(logging, 'warn').mockImplementation();
+  window.featureFlags = {
+    [FeatureFlag.LegacyCurrencySuffixDefault]: true,
+  };
+  resolveSymbolPosition('USD', undefined, 'en-US');
+  resolveSymbolPosition('EUR', undefined, 'fr-FR');
+  const deprecationCalls = warnSpy.mock.calls.filter(args =>
+    String(args[0]).includes('LEGACY_CURRENCY_SUFFIX_DEFAULT'),
+  );
+  expect(deprecationCalls).toHaveLength(1);
+  warnSpy.mockRestore();
 });

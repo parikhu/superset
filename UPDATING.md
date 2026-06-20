@@ -90,6 +90,16 @@ When a chart's currency control leaves the **Prefix or suffix** field empty, the
 
 Charts that relied on the previous always-suffix default for an unset position will render the symbol on the locale-appropriate side instead; set the position explicitly on the metric's currency control to pin it.
 
+To temporarily restore the old always-suffix default, enable the `LEGACY_CURRENCY_SUFFIX_DEFAULT` feature flag in `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "LEGACY_CURRENCY_SUFFIX_DEFAULT": True,
+}
+```
+
+This flag is deprecated and will be removed in 7.0.0. Use it only as a migration aid while you add explicit `symbolPosition` values to affected metrics.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
