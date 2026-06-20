@@ -20,7 +20,13 @@
 import {
   resolveSymbolPosition,
   formatWithSymbolPosition,
+  setLegacySymbolPositionDefault,
 } from '@superset-ui/core';
+
+afterEach(() => {
+  // Disable the legacy shim after each test so it does not leak.
+  setLegacySymbolPositionDefault(false);
+});
 
 test('resolveSymbolPosition honors an explicit position regardless of locale', () => {
   expect(resolveSymbolPosition('EUR', 'prefix', 'fr-FR')).toEqual('prefix');
@@ -56,4 +62,43 @@ test('resolveSymbolPosition falls back to prefix for unknown currencies', () => 
 test('formatWithSymbolPosition places the symbol according to the position', () => {
   expect(formatWithSymbolPosition('$', '1,000', 'prefix')).toEqual('$ 1,000');
   expect(formatWithSymbolPosition('€', '1,000', 'suffix')).toEqual('1,000 €');
+});
+
+// This test must run before any other test calls setLegacySymbolPositionDefault(true)
+// because the one-time warning flag is a module-level singleton.
+test('legacy flag emits a deprecation warning once', () => {
+  const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  setLegacySymbolPositionDefault(true);
+  expect(warnSpy).toHaveBeenCalledTimes(1);
+  expect(warnSpy.mock.calls[0][0]).toContain('DEPRECATION');
+
+  // Second call should not emit again.
+  setLegacySymbolPositionDefault(true);
+  expect(warnSpy).toHaveBeenCalledTimes(1);
+
+  warnSpy.mockRestore();
+});
+
+test('legacy flag ON: unset position resolves to suffix (pre-PR behavior)', () => {
+  setLegacySymbolPositionDefault(true);
+  // USD in en-US would be prefix under locale-aware behavior, but legacy
+  // forces suffix regardless.
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('suffix');
+  expect(resolveSymbolPosition('GBP', undefined, 'en-US')).toEqual('suffix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+  expect(resolveSymbolPosition(undefined, undefined, 'en-US')).toEqual(
+    'suffix',
+  );
+});
+
+test('legacy flag ON: explicit position still honored', () => {
+  setLegacySymbolPositionDefault(true);
+  expect(resolveSymbolPosition('USD', 'prefix', 'en-US')).toEqual('prefix');
+  expect(resolveSymbolPosition('EUR', 'suffix', 'fr-FR')).toEqual('suffix');
+});
+
+test('legacy flag OFF: locale-derived behavior is unchanged', () => {
+  setLegacySymbolPositionDefault(false);
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('prefix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
 });

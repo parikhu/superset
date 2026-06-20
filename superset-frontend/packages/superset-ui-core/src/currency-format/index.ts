@@ -28,6 +28,7 @@ export { getCurrencyLocale, setCurrencyLocale } from './currencyLocale';
 export {
   resolveSymbolPosition,
   formatWithSymbolPosition,
+  setLegacySymbolPositionDefault,
   type SymbolPosition,
 } from './symbolPosition';
 export * from './types';

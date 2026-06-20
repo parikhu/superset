@@ -24,6 +24,22 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Currency symbol position is derived from locale when unset
+
+When a chart's currency `symbolPosition` is not explicitly set, the default is
+derived from the deployment locale via `Intl.NumberFormat` (e.g. `$1` in `en-US`
+is a prefix, `1 €` in `fr-FR` is a suffix). Previously, unset positions always
+rendered as suffix.
+
+**Opt-out (temporary):** If you rely on the old always-suffix behavior, call
+`setLegacySymbolPositionDefault(true)` during application bootstrap (the
+`setupFormatters` helper accepts an optional `legacyCurrencySuffix` boolean for
+this purpose). This shim is **deprecated** and will be removed in Superset 6.0.
+
+**Migration path:** Audit charts that use a currency symbol without an explicit
+`symbolPosition`. Set the position to `'suffix'` on any chart that must keep the
+old rendering, then disable the legacy flag.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.

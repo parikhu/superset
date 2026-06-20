@@ -35,6 +35,36 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
  */
 const positionCache = new Map<string, SymbolPosition>();
 
+// TODO: DEPRECATION — remove `legacySuffixDefault` and
+// `setLegacySymbolPositionDefault` in the next major version (Superset 6.0).
+// When removed, delete this flag, the setter, the deprecation warning, and
+// the early-return branch in `resolveSymbolPosition` that reads it.
+let legacySuffixDefault = false;
+let legacyWarningEmitted = false;
+
+/**
+ * Opt in to the pre-locale-aware behavior where an unset `symbolPosition`
+ * resolves to `'suffix'` instead of being derived from the locale.
+ *
+ * This is an **off-by-default** compatibility shim. Enable it from
+ * `superset_config.py` → `D3_FORMAT` / bootstrap config so that existing
+ * charts keep their previous rendering while the deployment migrates.
+ *
+ * @param enabled – pass `true` to restore the legacy suffix default.
+ */
+export function setLegacySymbolPositionDefault(enabled: boolean): void {
+  legacySuffixDefault = enabled;
+  if (enabled && !legacyWarningEmitted) {
+    legacyWarningEmitted = true;
+    console.warn(
+      '[superset] DEPRECATION: setLegacySymbolPositionDefault(true) restores ' +
+        'the pre-locale-aware currency symbol position (always suffix). ' +
+        'This shim will be removed in the next major version (Superset 6.0). ' +
+        'Migrate chart configurations by setting an explicit symbolPosition.',
+    );
+  }
+}
+
 /**
  * Resolve where the currency symbol should be placed relative to the value.
  *
@@ -43,6 +73,10 @@ const positionCache = new Map<string, SymbolPosition>();
  * `Intl.NumberFormat` (e.g. `$1` in `en-US` is a prefix, `1 €` in `fr-FR` is a
  * suffix). Unknown currency codes fall back to `prefix`, the most common
  * convention worldwide.
+ *
+ * When `setLegacySymbolPositionDefault(true)` has been called, an unset
+ * position resolves to `'suffix'` to match the behavior before locale-aware
+ * symbol placement was introduced.
  */
 export function resolveSymbolPosition(
   currencyCode: string | undefined,
@@ -51,6 +85,11 @@ export function resolveSymbolPosition(
 ): SymbolPosition {
   if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
     return symbolPosition;
+  }
+
+  // TODO: DEPRECATION — remove this branch in Superset 6.0.
+  if (legacySuffixDefault) {
+    return 'suffix';
   }
 
   if (currencyCode) {
