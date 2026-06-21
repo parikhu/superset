@@ -251,6 +251,13 @@
         "category": "runtime_config"
       },
       {
+        "name": "CURRENCY_SYMBOL_LOCALE_POSITION",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Derive the default currency symbol position (prefix/suffix) from the deployment locale when a chart leaves it unset, instead of always using a suffix. Opt-in for backward compatibility; the locale-aware behavior will become the default and this flag removed in the next major release.",
+        "category": "path_to_deprecation"
+      },
+      {
         "name": "DASHBOARD_RBAC",
         "default": false,
         "lifecycle": "stable",

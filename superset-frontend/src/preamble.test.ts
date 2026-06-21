@@ -40,6 +40,9 @@ jest.mock('@apache-superset/core/utils', () => ({
 jest.mock('@superset-ui/core', () => ({
   initFeatureFlags: mockInitFeatureFlags,
   makeApi: mockMakeApi,
+  FeatureFlag: {
+    CurrencySymbolLocalePosition: 'CURRENCY_SYMBOL_LOCALE_POSITION',
+  },
 }));
 jest.mock('@superset-ui/core/utils/dates', () => ({
   extendedDayjs: {
@@ -101,7 +104,7 @@ test('passes bootstrap locale to setupFormatters', async () => {
 
   await runPreamble();
 
-  expect(mockSetupFormatters).toHaveBeenCalledWith({}, {}, 'pt_BR');
+  expect(mockSetupFormatters).toHaveBeenCalledWith({}, {}, 'pt_BR', false);
 });
 
 test('falls back to en when passing locale to setupFormatters', async () => {
@@ -109,5 +112,15 @@ test('falls back to en when passing locale to setupFormatters', async () => {
 
   await runPreamble();
 
-  expect(mockSetupFormatters).toHaveBeenCalledWith({}, {}, 'en');
+  expect(mockSetupFormatters).toHaveBeenCalledWith({}, {}, 'en', false);
+});
+
+test('forwards the CURRENCY_SYMBOL_LOCALE_POSITION flag to setupFormatters', async () => {
+  const data = bootstrapData('en');
+  data.common.feature_flags = { CURRENCY_SYMBOL_LOCALE_POSITION: true };
+  mockGetBootstrapData.mockReturnValue(data);
+
+  await runPreamble();
+
+  expect(mockSetupFormatters).toHaveBeenCalledWith({}, {}, 'en', true);
 });

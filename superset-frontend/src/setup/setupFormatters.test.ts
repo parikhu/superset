@@ -18,6 +18,7 @@
  */
 
 const mockSetCurrencyLocale = jest.fn();
+const mockSetCurrencySymbolLocalePosition = jest.fn();
 
 // Stub the formatter registries so the test focuses on the currency-locale
 // wiring without exercising real d3/Intl registry setup.
@@ -32,6 +33,7 @@ const chainableRegistry = () => {
 
 jest.mock('@superset-ui/core', () => ({
   setCurrencyLocale: mockSetCurrencyLocale,
+  setCurrencySymbolLocalePosition: mockSetCurrencySymbolLocalePosition,
   getNumberFormatterRegistry: jest.fn(() => chainableRegistry()),
   getTimeFormatterRegistry: jest.fn(() => chainableRegistry()),
   getNumberFormatter: jest.fn(() => jest.fn()),
@@ -46,10 +48,17 @@ jest.mock('@superset-ui/core', () => ({
   SMART_DATE_VERBOSE_ID: 'smart_date_verbose',
 }));
 
-async function runSetupFormatters(locale: string) {
+async function runSetupFormatters(
+  locale: string,
+  currencySymbolLocalePosition?: boolean,
+) {
   // Imported lazily so the jest.mock factory above is initialized first.
   const { default: setupFormatters } = await import('./setupFormatters');
-  setupFormatters({}, {}, locale);
+  if (currencySymbolLocalePosition === undefined) {
+    setupFormatters({}, {}, locale);
+  } else {
+    setupFormatters({}, {}, locale, currencySymbolLocalePosition);
+  }
 }
 
 beforeEach(() => {
@@ -68,4 +77,16 @@ test('setupFormatters forwards an underscore-formatted locale to setCurrencyLoca
   await runSetupFormatters('pt_BR');
 
   expect(mockSetCurrencyLocale).toHaveBeenCalledWith('pt_BR');
+});
+
+test('setupFormatters wires the CURRENCY_SYMBOL_LOCALE_POSITION flag', async () => {
+  await runSetupFormatters('en-US', true);
+
+  expect(mockSetCurrencySymbolLocalePosition).toHaveBeenCalledWith(true);
+});
+
+test('setupFormatters defaults the locale-position flag to off', async () => {
+  await runSetupFormatters('en-US');
+
+  expect(mockSetCurrencySymbolLocalePosition).toHaveBeenCalledWith(false);
 });

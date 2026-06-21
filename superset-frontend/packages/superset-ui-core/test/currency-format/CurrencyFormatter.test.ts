@@ -22,11 +22,19 @@ import {
   getCurrencySymbol,
   NumberFormats,
   setCurrencyLocale,
+  setCurrencySymbolLocalePosition,
 } from '@superset-ui/core';
 
+beforeEach(() => {
+  // These cases exercise the locale-aware default position, gated behind the
+  // CURRENCY_SYMBOL_LOCALE_POSITION flag.
+  setCurrencySymbolLocalePosition(true);
+});
+
 afterEach(() => {
-  // Guard against any test mutating the shared currency locale singleton.
+  // Guard against any test mutating the shared currency singletons.
   setCurrencyLocale('en-US');
+  setCurrencySymbolLocalePosition(false);
 });
 
 test('getCurrencySymbol', () => {
@@ -163,6 +171,22 @@ test('CurrencyFormatter:format', () => {
     d3Format: '$,.1f',
   });
   expect(currencyFormatterWithCurrencyD3(VALUE)).toEqual('56,100,057.0 PLN');
+});
+
+test('CurrencyFormatter:format keeps the legacy suffix default when the flag is off', () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  setCurrencySymbolLocalePosition(false);
+
+  const VALUE = 56100057;
+  const formatterWithoutPosition = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'USD' },
+  });
+  // With the flag off, an unset position falls back to the legacy suffix
+  // placement regardless of the locale.
+  expect(formatterWithoutPosition(VALUE)).toEqual('56.1M $');
+
+  warn.mockRestore();
 });
 
 test('CurrencyFormatter AUTO mode uses row context', () => {

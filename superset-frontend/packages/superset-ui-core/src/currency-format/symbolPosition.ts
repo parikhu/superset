@@ -35,14 +35,42 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
  */
 const positionCache = new Map<string, SymbolPosition>();
 
+const LEGACY_SUFFIX_DEPRECATION_WARNING =
+  'Currency symbol default suffix behavior is deprecated and will be ' +
+  'removed in the next major release. Set the position explicitly or ' +
+  'enable CURRENCY_SYMBOL_LOCALE_POSITION.';
+
+/**
+ * Gate for the locale-derived default symbol position. Defaults to `false` so
+ * an unset position keeps the legacy always-suffix behavior; the deployment
+ * opts in via the `CURRENCY_SYMBOL_LOCALE_POSITION` feature flag, wired in at
+ * bootstrap (see `setupFormatters`).
+ */
+let localePositionEnabled = false;
+let legacyFallbackWarned = false;
+
+/**
+ * Enable or disable the locale-derived default symbol position. Called once at
+ * application bootstrap with the `CURRENCY_SYMBOL_LOCALE_POSITION` flag value.
+ */
+export function setCurrencySymbolLocalePosition(enabled: boolean): void {
+  localePositionEnabled = enabled;
+}
+
+/** Whether an unset symbol position is derived from the locale. */
+export function getCurrencySymbolLocalePosition(): boolean {
+  return localePositionEnabled;
+}
+
 /**
  * Resolve where the currency symbol should be placed relative to the value.
  *
  * An explicit `prefix`/`suffix` is always honored. When the position is unset,
- * it is derived from the locale's own convention for that currency via
+ * behavior depends on the `CURRENCY_SYMBOL_LOCALE_POSITION` flag: when enabled,
+ * placement is derived from the locale's own convention for that currency via
  * `Intl.NumberFormat` (e.g. `$1` in `en-US` is a prefix, `1 €` in `fr-FR` is a
- * suffix). Unknown currency codes fall back to `prefix`, the most common
- * convention worldwide.
+ * suffix), falling back to `prefix` for unknown currency codes; when disabled,
+ * the legacy always-suffix default is used.
  */
 export function resolveSymbolPosition(
   currencyCode: string | undefined,
@@ -51,6 +79,16 @@ export function resolveSymbolPosition(
 ): SymbolPosition {
   if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
     return symbolPosition;
+  }
+
+  // TODO: DEPRECATION – remove legacy suffix fallback and CURRENCY_SYMBOL_LOCALE_POSITION flag
+  if (!localePositionEnabled) {
+    if (!legacyFallbackWarned) {
+      legacyFallbackWarned = true;
+      // eslint-disable-next-line no-console
+      console.warn(LEGACY_SUFFIX_DEPRECATION_WARNING);
+    }
+    return 'suffix';
   }
 
   if (currencyCode) {

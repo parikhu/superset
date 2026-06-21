@@ -30,6 +30,7 @@ import {
   createSmartDateDetailedFormatter,
   createMemoryFormatter,
   setCurrencyLocale,
+  setCurrencySymbolLocalePosition,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -38,10 +39,13 @@ export default function setupFormatters(
   d3NumberFormat: Partial<FormatLocaleDefinition>,
   d3TimeFormat: Partial<TimeLocaleDefinition>,
   locale: string,
+  currencySymbolLocalePosition = false,
 ) {
   // Resolve the default currency symbol position (prefix/suffix) according to
-  // the deployment locale's conventions when a chart leaves it unset.
+  // the deployment locale's conventions when a chart leaves it unset. Gated
+  // behind the CURRENCY_SYMBOL_LOCALE_POSITION flag for backward compatibility.
   setCurrencyLocale(locale);
+  setCurrencySymbolLocalePosition(currencySymbolLocalePosition);
 
   getNumberFormatterRegistry()
     .setD3Format(d3NumberFormat)

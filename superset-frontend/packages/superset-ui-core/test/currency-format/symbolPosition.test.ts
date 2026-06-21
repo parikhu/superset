@@ -20,11 +20,59 @@
 import {
   resolveSymbolPosition,
   formatWithSymbolPosition,
+  setCurrencySymbolLocalePosition,
 } from '@superset-ui/core';
 
-test('resolveSymbolPosition honors an explicit position regardless of locale', () => {
+beforeEach(() => {
+  // Most cases exercise the locale-aware path, gated behind the
+  // CURRENCY_SYMBOL_LOCALE_POSITION flag. Legacy cases re-disable it.
+  setCurrencySymbolLocalePosition(true);
+});
+
+afterEach(() => {
+  setCurrencySymbolLocalePosition(false);
+});
+
+test('resolveSymbolPosition honors an explicit position regardless of locale or flag', () => {
   expect(resolveSymbolPosition('EUR', 'prefix', 'fr-FR')).toEqual('prefix');
   expect(resolveSymbolPosition('USD', 'suffix', 'en-US')).toEqual('suffix');
+
+  setCurrencySymbolLocalePosition(false);
+  expect(resolveSymbolPosition('EUR', 'prefix', 'fr-FR')).toEqual('prefix');
+  expect(resolveSymbolPosition('USD', 'suffix', 'en-US')).toEqual('suffix');
+});
+
+test('resolveSymbolPosition defaults to suffix when the locale flag is off', () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  setCurrencySymbolLocalePosition(false);
+  // Legacy behavior: an unset position is always a suffix, ignoring the locale.
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('suffix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+
+  // Same inputs derive from the locale once the flag is enabled.
+  setCurrencySymbolLocalePosition(true);
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('prefix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+  warn.mockRestore();
+});
+
+test('resolveSymbolPosition warns once when the legacy suffix fallback fires', () => {
+  jest.isolateModules(() => {
+    // Fresh module instance so the one-time warning guard starts unset.
+    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+    const {
+      resolveSymbolPosition: resolve,
+    } = require('../../src/currency-format/symbolPosition');
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Flag defaults to off in the fresh module, so the fallback fires.
+    expect(resolve('USD', undefined, 'en-US')).toEqual('suffix');
+    expect(resolve('EUR', undefined, 'fr-FR')).toEqual('suffix');
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/deprecated/i);
+    warn.mockRestore();
+  });
 });
 
 test('resolveSymbolPosition derives the position from the locale when unset', () => {

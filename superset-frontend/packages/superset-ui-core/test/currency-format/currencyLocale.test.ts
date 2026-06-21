@@ -21,11 +21,19 @@ import {
   getCurrencyLocale,
   setCurrencyLocale,
   resolveSymbolPosition,
+  setCurrencySymbolLocalePosition,
 } from '@superset-ui/core';
 
+beforeEach(() => {
+  // Locale-derived position resolution is gated behind the
+  // CURRENCY_SYMBOL_LOCALE_POSITION flag.
+  setCurrencySymbolLocalePosition(true);
+});
+
 afterEach(() => {
-  // Restore the default so other tests are not affected by the global locale.
+  // Restore the defaults so other tests are not affected by the singletons.
   setCurrencyLocale('en-US');
+  setCurrencySymbolLocalePosition(false);
 });
 
 test('currency locale defaults to en-US', () => {

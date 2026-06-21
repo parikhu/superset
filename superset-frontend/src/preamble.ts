@@ -18,7 +18,7 @@
  */
 import { configure, LanguagePack } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { makeApi, initFeatureFlags } from '@superset-ui/core';
+import { makeApi, initFeatureFlags, FeatureFlag } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
@@ -59,6 +59,11 @@ export default function initPreamble(): Promise<void> {
       bootstrapData.common.d3_format,
       bootstrapData.common.d3_time_format,
       lang,
+      Boolean(
+        bootstrapData.common.feature_flags?.[
+          FeatureFlag.CurrencySymbolLocalePosition
+        ],
+      ),
     );
 
     // Setup SupersetClient early so we can fetch language pack

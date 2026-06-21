@@ -747,6 +747,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These flags are stable and on path to becoming default behavior,
     # after which the flag will be deprecated.
     # -----------------------------------------------------------------
+    # Derive the default currency symbol position (prefix/suffix) from the
+    # deployment locale when a chart leaves it unset, instead of always using a
+    # suffix. Opt-in for backward compatibility; the locale-aware behavior will
+    # become the default and this flag removed in the next major release.
+    # @lifecycle: stable
+    # @category: path_to_deprecation
+    "CURRENCY_SYMBOL_LOCALE_POSITION": False,
     # Enables dashboard virtualization for improved performance
     # @lifecycle: stable
     # @category: path_to_deprecation
