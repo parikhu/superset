@@ -18,10 +18,18 @@
  */
 
 import {
+  FeatureFlag,
   getCurrencyLocale,
   setCurrencyLocale,
   resolveSymbolPosition,
 } from '@superset-ui/core';
+
+beforeEach(() => {
+  // Locale-derived resolution is gated behind the feature flag.
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: true,
+  };
+});
 
 afterEach(() => {
   // Restore the default so other tests are not affected by the global locale.

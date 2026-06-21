@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { logging } from '@apache-superset/core/utils';
+import { FeatureFlag, isFeatureEnabled } from '../utils';
 import { getCurrencyLocale } from './currencyLocale';
 
 export type SymbolPosition = 'prefix' | 'suffix';
@@ -27,6 +29,22 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
   'decimal',
   'fraction',
 ]);
+
+let hasWarnedLegacySuffixDefault = false;
+
+/** Emit the legacy-suffix deprecation warning at most once per session. */
+function warnLegacySuffixDefaultOnce(): void {
+  if (hasWarnedLegacySuffixDefault) {
+    return;
+  }
+  hasWarnedLegacySuffixDefault = true;
+  logging.warn(
+    'Defaulting an unset currency symbol position to suffix is deprecated and ' +
+      'will be removed in Superset 7.0. Set the position explicitly on the ' +
+      "metric's currency control, or enable the CURRENCY_LOCALE_SYMBOL_POSITION " +
+      'feature flag to derive it from the deployment locale.',
+  );
+}
 
 /**
  * Memoize resolved positions by `(locale, currencyCode)`. `format` runs on a
@@ -39,10 +57,13 @@ const positionCache = new Map<string, SymbolPosition>();
  * Resolve where the currency symbol should be placed relative to the value.
  *
  * An explicit `prefix`/`suffix` is always honored. When the position is unset,
- * it is derived from the locale's own convention for that currency via
- * `Intl.NumberFormat` (e.g. `$1` in `en-US` is a prefix, `1 €` in `fr-FR` is a
- * suffix). Unknown currency codes fall back to `prefix`, the most common
- * convention worldwide.
+ * behavior depends on the `CURRENCY_LOCALE_SYMBOL_POSITION` feature flag:
+ * - flag off (default): the legacy `suffix` default is returned, preserving
+ *   pre-upgrade rendering for charts that never set a position.
+ * - flag on: the position is derived from the locale's own convention for that
+ *   currency via `Intl.NumberFormat` (e.g. `$1` in `en-US` is a prefix, `1 €`
+ *   in `fr-FR` is a suffix). Unknown currency codes fall back to `prefix`, the
+ *   most common convention worldwide.
  */
 export function resolveSymbolPosition(
   currencyCode: string | undefined,
@@ -51,6 +72,14 @@ export function resolveSymbolPosition(
 ): SymbolPosition {
   if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
     return symbolPosition;
+  }
+
+  // TODO: DEPRECATION – remove suffix fallback in Superset 7.0 along with the
+  // CURRENCY_LOCALE_SYMBOL_POSITION feature flag, making locale-derived
+  // resolution the unconditional default for an unset position.
+  if (!isFeatureEnabled(FeatureFlag.CurrencyLocaleSymbolPosition)) {
+    warnLegacySuffixDefaultOnce();
+    return 'suffix';
   }
 
   if (currencyCode) {

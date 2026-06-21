@@ -18,13 +18,37 @@
  */
 
 import {
+  FeatureFlag,
   resolveSymbolPosition,
   formatWithSymbolPosition,
 } from '@superset-ui/core';
 
+beforeEach(() => {
+  // Locale-derived resolution is gated behind the feature flag; default the
+  // suite to the flag-on behavior and override per-test where needed.
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: true,
+  };
+});
+
 test('resolveSymbolPosition honors an explicit position regardless of locale', () => {
   expect(resolveSymbolPosition('EUR', 'prefix', 'fr-FR')).toEqual('prefix');
   expect(resolveSymbolPosition('USD', 'suffix', 'en-US')).toEqual('suffix');
+});
+
+test('resolveSymbolPosition returns the legacy suffix default when the flag is off', () => {
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: false,
+  };
+  // With the flag off, an unset position falls back to the legacy suffix
+  // regardless of locale convention or currency.
+  expect(resolveSymbolPosition('USD', undefined, 'en-US')).toEqual('suffix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+  expect(resolveSymbolPosition(undefined, undefined, 'en-US')).toEqual(
+    'suffix',
+  );
+  // An explicit position is still honored even when the flag is off.
+  expect(resolveSymbolPosition('USD', 'prefix', 'en-US')).toEqual('prefix');
 });
 
 test('resolveSymbolPosition derives the position from the locale when unset', () => {
@@ -51,6 +75,28 @@ test('resolveSymbolPosition falls back to prefix for unknown currencies', () => 
   expect(resolveSymbolPosition(undefined, undefined, 'en-US')).toEqual(
     'prefix',
   );
+});
+
+test('resolveSymbolPosition warns at most once when falling back to the legacy suffix', async () => {
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: false,
+  };
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    // Load a fresh module copy so the once-per-session guard starts unset
+    // regardless of any earlier fallback in this file.
+    await jest.isolateModulesAsync(async () => {
+      const { resolveSymbolPosition: freshResolve } =
+        await import('../../src/currency-format/symbolPosition');
+      freshResolve('USD', undefined, 'en-US');
+      freshResolve('EUR', undefined, 'fr-FR');
+    });
+    // The warning is emitted once per session, not per call.
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/CURRENCY_LOCALE_SYMBOL_POSITION/);
+  } finally {
+    warn.mockRestore();
+  }
 });
 
 test('formatWithSymbolPosition places the symbol according to the position', () => {

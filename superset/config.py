@@ -751,6 +751,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: path_to_deprecation
     "DASHBOARD_VIRTUALIZATION": True,
+    # When enabled, an unset currency symbol position (the "Prefix or suffix"
+    # control left empty) is derived from the deployment locale's own convention
+    # via Intl.NumberFormat (e.g. prefix under en-US, suffix under fr-FR) instead
+    # of always defaulting to a suffix. Defaults to False to preserve the legacy
+    # always-suffix rendering; it will become the default in Superset 7.0, after
+    # which this flag will be removed.
+    # @lifecycle: stable
+    # @category: path_to_deprecation
+    "CURRENCY_LOCALE_SYMBOL_POSITION": False,
     # =================================================================
     # STABLE - RUNTIME CONFIGURATION
     # =================================================================

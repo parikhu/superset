@@ -19,10 +19,20 @@
 
 import {
   CurrencyFormatter,
+  FeatureFlag,
   getCurrencySymbol,
   NumberFormats,
   setCurrencyLocale,
 } from '@superset-ui/core';
+
+beforeEach(() => {
+  // Locale-derived symbol positioning is gated behind the feature flag; enable
+  // it so an unset position follows the locale convention. Tests that exercise
+  // the legacy suffix default override this.
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: true,
+  };
+});
 
 afterEach(() => {
   // Guard against any test mutating the shared currency locale singleton.
@@ -145,6 +155,19 @@ test('CurrencyFormatter:format', () => {
   // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency(VALUE)).toEqual('56.1M');
+
+  // With the flag off, an unset position keeps the legacy suffix default.
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: false,
+  };
+  const legacyUnsetFormatter = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'USD' },
+  });
+  expect(legacyUnsetFormatter(VALUE)).toEqual('56.1M $');
+  window.featureFlags = {
+    [FeatureFlag.CurrencyLocaleSymbolPosition]: true,
+  };
 
   const currencyFormatterWithCustomD3 = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
