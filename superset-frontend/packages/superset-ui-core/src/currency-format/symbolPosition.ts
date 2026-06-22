@@ -18,6 +18,7 @@
  */
 
 import { getCurrencyLocale } from './currencyLocale';
+import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 export type SymbolPosition = 'prefix' | 'suffix';
 
@@ -35,6 +36,8 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
  */
 const positionCache = new Map<string, SymbolPosition>();
 
+let legacySuffixWarningEmitted = false;
+
 /**
  * Resolve where the currency symbol should be placed relative to the value.
  *
@@ -51,6 +54,22 @@ export function resolveSymbolPosition(
 ): SymbolPosition {
   if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
     return symbolPosition;
+  }
+
+  // TODO: DEPRECATION — remove this branch and the feature flag gate below
+  // in the next major release. Once CURRENCY_LOCALE_SYMBOL_POSITION becomes
+  // the default, the legacy always-suffix fallback is no longer needed.
+  if (!isFeatureEnabled(FeatureFlag.CurrencyLocaleSymbolPosition)) {
+    if (!legacySuffixWarningEmitted) {
+      legacySuffixWarningEmitted = true;
+      console.warn(
+        '[Superset] The always-suffix default for currency symbol position ' +
+          'is deprecated and will be removed in the next major version. ' +
+          'Enable the CURRENCY_LOCALE_SYMBOL_POSITION feature flag or set ' +
+          'an explicit position on each currency control.',
+      );
+    }
+    return 'suffix';
   }
 
   if (currencyCode) {
