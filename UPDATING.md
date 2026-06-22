@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Deprecated: always-suffix default for currency symbol position
+
+When a chart's currency control leaves **Prefix or suffix** unset, the symbol was always placed as a suffix (e.g. `56.1M $`). A new feature flag `CURRENCY_LOCALE_SYMBOL_POSITION` (default `False`) derives the position from the deployment locale via `Intl.NumberFormat` instead (e.g. `$ 56.1M` under `en-US`).
+
+The legacy always-suffix behaviour is preserved by default. When the fallback is exercised, a one-time `console.warn` is emitted advising operators to either enable the flag or set explicit positions. The flag will default to `True` in the next major release and be removed one major release after that.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
@@ -84,6 +90,19 @@ Operators can tune or disable the policy via config:
 ### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
 
 Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+### Currency symbol position follows the locale when unset
+
+When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position is now derived from the deployment locale's own convention via `Intl.NumberFormat` instead of always defaulting to a suffix. For example, under the default `en-US` locale `USD`, `GBP`, and `EUR` render as a prefix (`$ 1,000`), while eurozone locales such as `fr-FR` render `EUR` as a suffix (`1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected.
+
+Charts that relied on the previous always-suffix default for an unset position will render the symbol on the locale-appropriate side instead; set the position explicitly on the metric's currency control to pin it.
+
+**Opt-out:** Enable the `CURRENCY_LEGACY_SUFFIX_DEFAULT` feature flag to restore the previous always-suffix default while you migrate affected charts. When the flag is enabled, any chart whose currency position is unset will continue to place the symbol as a suffix. A deprecation warning is logged on first use; the flag will be removed in Superset 6.0.
+
+```python
+FEATURE_FLAGS = {
+    "CURRENCY_LEGACY_SUFFIX_DEFAULT": True,
+}
+```
 
 ### Duration formatter precision
 

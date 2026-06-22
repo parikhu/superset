@@ -145,6 +145,12 @@
         "description": "Enable caching per impersonation key in datasources with user impersonation"
       },
       {
+        "name": "CURRENCY_LOCALE_SYMBOL_POSITION",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Derive currency symbol position (prefix/suffix) from the deployment locale instead of always defaulting to suffix.  When disabled (the default), unset positions fall back to the legacy always-suffix behaviour.  Enable to let Intl.NumberFormat decide."
+      },
+      {
         "name": "DATE_FORMAT_IN_EMAIL_SUBJECT",
         "default": false,
         "lifecycle": "testing",

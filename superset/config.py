@@ -867,6 +867,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Avoid color collisions in charts by using distinct colors
     # @lifecycle: deprecated
     "AVOID_COLORS_COLLISION": True,
+    # Restore the pre-5.x always-suffix default when the currency symbol
+    # position is unset.  Enable to keep the legacy behavior while migrating
+    # charts to an explicit prefix/suffix selection.  Will be removed in 6.0.
+    # @lifecycle: deprecated
+    "CURRENCY_LEGACY_SUFFIX_DEFAULT": False,
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
