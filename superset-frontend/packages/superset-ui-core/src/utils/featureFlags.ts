@@ -32,8 +32,9 @@ export enum FeatureFlag {
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  /** @deprecated */
+  CurrencyLegacySuffixDefault = 'CURRENCY_LEGACY_SUFFIX_DEFAULT',
   CssTemplates = 'CSS_TEMPLATES',
-  CurrencyLocaleSymbolPosition = 'CURRENCY_LOCALE_SYMBOL_POSITION',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardVirtualizationDeferData = 'DASHBOARD_VIRTUALIZATION_DEFER_DATA',
   DashboardRbac = 'DASHBOARD_RBAC',

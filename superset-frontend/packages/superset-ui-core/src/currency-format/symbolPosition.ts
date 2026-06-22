@@ -36,7 +36,12 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
  */
 const positionCache = new Map<string, SymbolPosition>();
 
-let legacySuffixWarningEmitted = false;
+let legacySuffixWarned = false;
+
+/** @internal Visible for testing only — resets the one-time warning guard. */
+export function resetLegacySuffixWarning(): void {
+  legacySuffixWarned = false;
+}
 
 /**
  * Resolve where the currency symbol should be placed relative to the value.
@@ -56,18 +61,21 @@ export function resolveSymbolPosition(
     return symbolPosition;
   }
 
-  // TODO: DEPRECATION — remove this branch and the feature flag gate below
-  // in the next major release. Once CURRENCY_LOCALE_SYMBOL_POSITION becomes
-  // the default, the legacy always-suffix fallback is no longer needed.
-  if (!isFeatureEnabled(FeatureFlag.CurrencyLocaleSymbolPosition)) {
-    if (!legacySuffixWarningEmitted) {
-      legacySuffixWarningEmitted = true;
+  // TODO: DEPRECATION – Remove the CURRENCY_LEGACY_SUFFIX_DEFAULT feature
+  // flag and this branch in Superset 6.0. The flag restores the pre-5.x
+  // behavior of always defaulting to 'suffix' when the position is unset.
+  // When removing, delete the flag from FeatureFlag, DEFAULT_FEATURE_FLAGS,
+  // and the corresponding UPDATING.md entry.
+  if (isFeatureEnabled(FeatureFlag.CurrencyLegacySuffixDefault)) {
+    if (!legacySuffixWarned) {
       console.warn(
-        '[Superset] The always-suffix default for currency symbol position ' +
-          'is deprecated and will be removed in the next major version. ' +
-          'Enable the CURRENCY_LOCALE_SYMBOL_POSITION feature flag or set ' +
-          'an explicit position on each currency control.',
+        '[Superset] CURRENCY_LEGACY_SUFFIX_DEFAULT is enabled. ' +
+          'The always-suffix default for unset currency symbol positions is ' +
+          'deprecated and will be removed in Superset 6.0. Set the position ' +
+          'explicitly on each metric or disable the flag to adopt locale-aware ' +
+          'placement.',
       );
+      legacySuffixWarned = true;
     }
     return 'suffix';
   }

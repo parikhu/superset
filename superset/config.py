@@ -738,12 +738,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Global Task Framework - unified task management with progress tracking,
     # cancellation, and deduplication.
     "GLOBAL_TASK_FRAMEWORK": False,
-    # Derive currency symbol position (prefix/suffix) from the deployment
-    # locale instead of always defaulting to suffix.  When disabled (the
-    # default), unset positions fall back to the legacy always-suffix
-    # behaviour.  Enable to let Intl.NumberFormat decide.
-    # @lifecycle: testing
-    "CURRENCY_LOCALE_SYMBOL_POSITION": False,
     # Use analogous colors in charts
     # @lifecycle: testing
     "USE_ANALOGOUS_COLORS": False,
@@ -873,6 +867,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Avoid color collisions in charts by using distinct colors
     # @lifecycle: deprecated
     "AVOID_COLORS_COLLISION": True,
+    # Restore the pre-5.x always-suffix default when the currency symbol
+    # position is unset.  Enable to keep the legacy behavior while migrating
+    # charts to an explicit prefix/suffix selection.  Will be removed in 6.0.
+    # @lifecycle: deprecated
+    "CURRENCY_LEGACY_SUFFIX_DEFAULT": False,
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
