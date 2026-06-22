@@ -84,11 +84,11 @@ Operators can tune or disable the policy via config:
 ### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
 
 Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
-### Currency symbol position follows the locale when unset
+### Deprecated: always-suffix default for an unset currency symbol position
 
-When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position is now derived from the deployment locale's own convention via `Intl.NumberFormat` instead of always defaulting to a suffix. For example, under the default `en-US` locale `USD`, `GBP`, and `EUR` render as a prefix (`$ 1,000`), while eurozone locales such as `fr-FR` render `EUR` as a suffix (`1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected.
+When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position still defaults to a **suffix**, but this default is now **deprecated**. A future major release will instead derive the position from the deployment locale's own convention via `Intl.NumberFormat` (e.g. under `en-US` `USD`, `GBP`, and `EUR` render as a prefix `$ 1,000`, while eurozone locales such as `fr-FR` render `EUR` as a suffix `1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected by this change.
 
-Charts that relied on the previous always-suffix default for an unset position will render the symbol on the locale-appropriate side instead; set the position explicitly on the metric's currency control to pin it.
+To opt in to the locale-aware behavior early, enable the `CURRENCY_LOCALE_SYMBOL_POSITION` feature flag (off by default). When the flag is off and the locale-derived position would differ from the legacy suffix, a one-time deprecation warning is logged. To preserve the current rendering across the upcoming major release, set the position explicitly on the metric's currency control.
 
 ### Duration formatter precision
 

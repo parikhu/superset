@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { logging } from '@apache-superset/core/utils';
 import {
   CurrencyFormatter,
   getCurrencySymbol,
@@ -24,9 +25,19 @@ import {
   setCurrencyLocale,
 } from '@superset-ui/core';
 
+beforeEach(() => {
+  // Enable locale-aware symbol positioning so an unset position is derived from
+  // the locale rather than falling back to the legacy suffix default.
+  window.featureFlags = { CURRENCY_LOCALE_SYMBOL_POSITION: true };
+  // Silence the one-time legacy-default deprecation warning.
+  jest.spyOn(logging, 'warn').mockImplementation(() => undefined);
+});
+
 afterEach(() => {
   // Guard against any test mutating the shared currency locale singleton.
   setCurrencyLocale('en-US');
+  window.featureFlags = {};
+  jest.restoreAllMocks();
 });
 
 test('getCurrencySymbol', () => {
@@ -231,6 +242,32 @@ test('CurrencyFormatter AUTO mode resolves position from locale when symbolPosit
   const frResult = frFormatter.format(1000, row, 'currency');
   expect(frResult).toContain('€');
   expect(frResult).toMatch(/1,000\.00.*€/);
+});
+
+test('CurrencyFormatter falls back to the legacy suffix default when the flag is off', () => {
+  // With CURRENCY_LOCALE_SYMBOL_POSITION off, an unset position keeps the
+  // pre-existing always-suffix rendering even under en-US (where USD is a prefix
+  // by convention).
+  window.featureFlags = {};
+  const VALUE = 56100057;
+
+  const formatter = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'USD' },
+  });
+  expect(formatter(VALUE)).toEqual('56.1M $');
+
+  const autoFormatter = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'AUTO' },
+    d3Format: ',.2f',
+  });
+  const autoResult = autoFormatter.format(
+    1000,
+    { currency: 'EUR' },
+    'currency',
+  );
+  expect(autoResult).toMatch(/1,000\.00.*€/);
 });
 
 test('CurrencyFormatter AUTO mode returns plain value when row currency is not a string (line 52)', () => {

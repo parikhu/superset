@@ -145,6 +145,12 @@
         "description": "Enable caching per impersonation key in datasources with user impersonation"
       },
       {
+        "name": "CURRENCY_LOCALE_SYMBOL_POSITION",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Derive the default currency symbol position (prefix/suffix) from the deployment locale when a chart leaves it unset, instead of always using a suffix. Opt-in while the always-suffix default is deprecated; it will become the default in the next major release."
+      },
+      {
         "name": "DATE_FORMAT_IN_EMAIL_SUBJECT",
         "default": false,
         "lifecycle": "testing",

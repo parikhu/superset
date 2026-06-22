@@ -683,6 +683,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable caching per impersonation key in datasources with user impersonation
     # @lifecycle: testing
     "CACHE_IMPERSONATION": False,
+    # Derive the default currency symbol position (prefix/suffix) from the
+    # deployment locale when a chart leaves it unset, instead of always using a
+    # suffix. Opt-in while the always-suffix default is deprecated; it will
+    # become the default in the next major release.
+    # @lifecycle: testing
+    "CURRENCY_LOCALE_SYMBOL_POSITION": False,
     # Allow users to optionally specify date formats in email subjects
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports

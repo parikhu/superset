@@ -23,9 +23,16 @@ import {
   resolveSymbolPosition,
 } from '@superset-ui/core';
 
+beforeEach(() => {
+  // Enable locale-aware derivation so resolveSymbolPosition exercises the
+  // locale convention rather than the legacy suffix default.
+  window.featureFlags = { CURRENCY_LOCALE_SYMBOL_POSITION: true };
+});
+
 afterEach(() => {
   // Restore the default so other tests are not affected by the global locale.
   setCurrencyLocale('en-US');
+  window.featureFlags = {};
 });
 
 test('currency locale defaults to en-US', () => {

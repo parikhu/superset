@@ -17,9 +17,17 @@
  * under the License.
  */
 
+import { logging } from '@apache-superset/core/utils';
+import { FeatureFlag, isFeatureEnabled } from '../utils/featureFlags';
 import { getCurrencyLocale } from './currencyLocale';
 
 export type SymbolPosition = 'prefix' | 'suffix';
+
+/**
+ * Position used for an unset symbol position before locale-aware derivation was
+ * introduced. Retained as the default while the change is behind a feature flag.
+ */
+const LEGACY_DEFAULT_POSITION: SymbolPosition = 'suffix';
 
 const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
   'integer',
@@ -35,24 +43,19 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
  */
 const positionCache = new Map<string, SymbolPosition>();
 
+/** Emit the deprecation notice at most once per session to avoid log spam. */
+let hasWarnedLegacyDefault = false;
+
 /**
- * Resolve where the currency symbol should be placed relative to the value.
- *
- * An explicit `prefix`/`suffix` is always honored. When the position is unset,
- * it is derived from the locale's own convention for that currency via
- * `Intl.NumberFormat` (e.g. `$1` in `en-US` is a prefix, `1 €` in `fr-FR` is a
- * suffix). Unknown currency codes fall back to `prefix`, the most common
+ * Derive the symbol position from the locale's own convention for the currency
+ * via `Intl.NumberFormat` (e.g. `$1` in `en-US` is a prefix, `1 €` in `fr-FR`
+ * is a suffix). Unknown currency codes fall back to `prefix`, the most common
  * convention worldwide.
  */
-export function resolveSymbolPosition(
+function deriveLocaleSymbolPosition(
   currencyCode: string | undefined,
-  symbolPosition?: string,
-  locale: string = getCurrencyLocale(),
+  locale: string,
 ): SymbolPosition {
-  if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
-    return symbolPosition;
-  }
-
   if (currencyCode) {
     const cacheKey = `${locale}|${currencyCode}`;
     const cached = positionCache.get(cacheKey);
@@ -79,6 +82,49 @@ export function resolveSymbolPosition(
   }
 
   return 'prefix';
+}
+
+/**
+ * Resolve where the currency symbol should be placed relative to the value.
+ *
+ * An explicit `prefix`/`suffix` is always honored. When the position is unset,
+ * the result depends on the `CURRENCY_LOCALE_SYMBOL_POSITION` feature flag:
+ *  - flag off (default): the legacy always-`suffix` default is used, preserving
+ *    existing chart rendering on upgrade.
+ *  - flag on: the position is derived from the deployment locale's convention
+ *    for that currency.
+ */
+export function resolveSymbolPosition(
+  currencyCode: string | undefined,
+  symbolPosition?: string,
+  locale: string = getCurrencyLocale(),
+): SymbolPosition {
+  if (symbolPosition === 'prefix' || symbolPosition === 'suffix') {
+    return symbolPosition;
+  }
+
+  const localePosition = deriveLocaleSymbolPosition(currencyCode, locale);
+
+  // TODO: DEPRECATION — In the next major release, remove this feature-flag gate
+  // (and the CURRENCY_LOCALE_SYMBOL_POSITION flag) so that an unset position is
+  // always derived from the locale, i.e. return `localePosition`
+  // unconditionally. See the "Deprecated" entry in UPDATING.md.
+  if (!isFeatureEnabled(FeatureFlag.CurrencyLocaleSymbolPosition)) {
+    if (localePosition !== LEGACY_DEFAULT_POSITION && !hasWarnedLegacyDefault) {
+      hasWarnedLegacyDefault = true;
+      logging.warn(
+        'An unset currency symbol position currently defaults to a suffix. ' +
+          'A future major release will derive it from the deployment locale ' +
+          `(this currency would render as a "${localePosition}"). Enable the ` +
+          'CURRENCY_LOCALE_SYMBOL_POSITION feature flag to opt in early, or ' +
+          'set an explicit prefix/suffix on the currency control to keep the ' +
+          'current rendering.',
+      );
+    }
+    return LEGACY_DEFAULT_POSITION;
+  }
+
+  return localePosition;
 }
 
 /**
